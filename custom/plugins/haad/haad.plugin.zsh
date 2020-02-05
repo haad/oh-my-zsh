@@ -40,6 +40,10 @@ alias kgd="kubectl get deploy"
 alias kgi="kubectl get ingress"
 alias kbsh="kubectl run alpine-$RANDOM -it --rm --image=alpine:latest --env 'PS1=\h:\w\\$ ' -- sh -c 'apk --update add busybox-extras openssh-client curl bash; bash'"
 
+function krun() {
+    kubectl run my-$RANDOM --rm --restart=Never -it --image=${1} --image-pull-policy=Always -- ${2:-bash}
+}
+
 alias he="helm"
 alias ko="kops"
 
