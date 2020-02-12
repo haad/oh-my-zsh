@@ -5,6 +5,7 @@ alias cra="cd ~/Desktop/chilli/cracz"
 alias pix="cd ~/Desktop/chilli/pixel"
 alias hub="cd ~/Desktop/chilli/hubhaus"
 alias ras="cd ~/Desktop/chilli/ras"
+alias sof="cd ~/Desktop/chilli/softec"
 
 #alias udu="cd ~/Documents/UDU/udu-ansible-setup"
 #alias ib="cd ~/Desktop/chilli/ib"

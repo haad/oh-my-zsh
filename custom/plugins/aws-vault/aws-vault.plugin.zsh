@@ -41,14 +41,15 @@ function aws_change_access_key() {
 
 #
 # Open Google chrome authenticated
+alias google-chrome-stable='/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome'
+alias firefox-stable='/Applications/Firefox.app/Contents/MacOS/firefox'
 function avd() {
-  alias google-chrome-stable='/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome'
-
   local TOKEN="$(aws-vault login -s $1)"
   if [[ $TOKEN =~ "signin.aws.amazon.com" ]]; then
     local cache=$(mktemp -d /tmp/google-chrome-XXXXXX)
     local data=$(mktemp -d /tmp/google-chrome-XXXXXX)
     google-chrome-stable --no-first-run --new-window --disk-cache-dir=$cache --user-data-dir=$data $TOKEN
+#    firefox-stable --profile=${cache} --safe-mode --private-window ${TOKEN}
     rm -rf $cache $data
   else
     echo $TOKEN
@@ -59,6 +60,13 @@ function avd() {
 # Setup temp access keys with AWS vault
 function ave() {
   local duration=1h
+
+  if [[ -z "$1" ]]; then
+    unset AWS_VAULT AWS_DEFAULT_REGION AWS_REGION AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_SECURITY_TOKEN AWS_SESSION_EXPIRATION
+    echo AWS profile cleared.
+    return
+  fi
+
   aws-vault exec -d ${duration} $1 --
 }
 
