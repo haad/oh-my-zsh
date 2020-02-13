@@ -44,13 +44,22 @@ function aws_change_access_key() {
 alias google-chrome-stable='/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome'
 alias firefox-stable='/Applications/Firefox.app/Contents/MacOS/firefox'
 function avd() {
+
+  if [[ -z "$1" ]]; then
+    unset AWS_VAULT AWS_DEFAULT_REGION AWS_REGION AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_SECURITY_TOKEN AWS_SESSION_EXPIRATION
+    echo AWS profile cleared.
+    return
+  fi
+
   local TOKEN="$(aws-vault login -s $1)"
   if [[ $TOKEN =~ "signin.aws.amazon.com" ]]; then
-    local cache=$(mktemp -d /tmp/google-chrome-XXXXXX)
-    local data=$(mktemp -d /tmp/google-chrome-XXXXXX)
-    google-chrome-stable --no-first-run --new-window --disk-cache-dir=$cache --user-data-dir=$data $TOKEN
+    local cache=$(mktemp -d /tmp/google-cache-XXXXXX)
+    local data=$(mktemp -d /tmp/google-data-XXXXXX)
+    local log=$(mktemp /tmp/google-log-XXXXXX)
+    echo "Using cache: $cache data: $data log: $log"
+
+    (google-chrome-stable --no-first-run --new-window --disk-cache-dir=$cache --user-data-dir=$data $TOKEN  && rm -rf $cache $data) 1>&2 2>${log} &
 #    firefox-stable --profile=${cache} --safe-mode --private-window ${TOKEN}
-    rm -rf $cache $data
   else
     echo $TOKEN
   fi
