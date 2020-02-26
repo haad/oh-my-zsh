@@ -74,6 +74,8 @@ function ave() {
     unset AWS_VAULT AWS_DEFAULT_REGION AWS_REGION AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_SECURITY_TOKEN AWS_SESSION_EXPIRATION
     echo AWS profile cleared.
     return
+  else
+    unset AWS_VAULT
   fi
 
   aws-vault exec -d ${duration} $1 --
