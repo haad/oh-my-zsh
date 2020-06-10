@@ -7,6 +7,13 @@ function lcfvault {
 function cfvault {
   #local rprompt=${RPROMPT/<cfvault:$(lcfg)>/}
 
+  if [[ -z "$1" ]]; then
+    unset VAULT_TOKEN
+    unset VAULT_ADDR
+    unset VAULT_HOME
+    unset VAULTCONFIG
+  fi
+
   export VAULTCONFIG=$VAULT_HOME/${1}
   source ${VAULT_HOME}/${1}
 #  export VAULTCONFIG=$VAULT_HOME/${1}.cfg

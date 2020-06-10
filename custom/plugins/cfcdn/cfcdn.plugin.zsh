@@ -7,6 +7,13 @@ function lcfcdn {
 function cfcdn {
   #local rprompt=${RPROMPT/<cfcdn:$(lcfg)>/}
 
+  if [[ -z "$1" ]]; then
+    unset CLOUDFLARE_API_TOKEN
+    unset CLOUDFLARE_EMAIL
+    unset CLOUDFLARE_HOME
+    unset CLOUDFLARECONFIG
+  fi
+
   export CLOUDFLARECONFIG=$CLOUDFLARE_HOME/${1}
   source ${CLOUDFLARE_HOME}/${1}
 #  export CLOUDFLARECONFIG=$CLOUDFLARE_HOME/${1}.cfg

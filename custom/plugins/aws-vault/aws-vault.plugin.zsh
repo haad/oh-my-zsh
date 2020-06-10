@@ -71,7 +71,13 @@ function ave() {
   local duration=1h
 
   if [[ -z "$1" ]]; then
-    unset AWS_VAULT AWS_DEFAULT_REGION AWS_REGION AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_SECURITY_TOKEN AWS_SESSION_EXPIRATION
+    unset AWS_VAULT
+    unset AWS_DEFAULT_REGION
+    unset AWS_REGION
+    unset AWS_ACCESS_KEY_ID
+    unset AWS_SECRET_ACCESS_KEY
+    unset AWS_SESSION_TOKEN
+    unset AWS_SECURITY_TOKEN AWS_SESSION_EXPIRATION
     echo AWS profile cleared.
     return
   else
