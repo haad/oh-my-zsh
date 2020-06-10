@@ -117,6 +117,8 @@ function _awscli-homebrew-installed() {
   # speculatively check default brew prefix
   if [ -h /usr/local/opt/awscli ]; then
     _brew_prefix=/usr/local/opt/awscli
+  elif [ -d ~/.pyenv/shims/ ]; then
+    _brew_prefix=~/.pyenv/shims/aws
   else
     # ok, it is not in the default prefix
     # this call to brew is expensive (about 400 ms), so at least let's make it only once
