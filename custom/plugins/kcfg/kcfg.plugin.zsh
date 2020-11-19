@@ -5,13 +5,15 @@ function lcfg {
 }
 
 function kcfg {
-  local rprompt=${RPROMPT/<k8s:$(lcfg)>/}
+  if [[ -z "$1" ]]; then
+    unset KUBECONFIG
+    echo KUBECONFIG settings cleared.
+    return
+  fi
+
+  #local rprompt=${RPROMPT/<k8s:$(lcfg)>/}
 
   export KUBECONFIG=$KUBE_HOME/${1}.cfg
-
-#  export RPROMPT="<k8s:$1>$rprompt"
-#
-#  export RPROMPT="$RPROMPT <k8s:$1>"
 }
 
 function kcfg_prompt_info() {

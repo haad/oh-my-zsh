@@ -32,7 +32,9 @@ alias kgp="kubectl get pods"
 alias kgs="kubectl get service"
 alias kgd="kubectl get deploy"
 alias kgi="kubectl get ingress"
-alias kbsh="kubectl run alpine-$RANDOM -it --rm --image=alpine:latest --env 'PS1=\h:\w\\$ ' -- sh -c 'apk --update add busybox-extras openssh-client curl bash; bash'"
+alias kbsh="kubectl run alpine-$RANDOM -it --rm --image=alpine:latest --env 'PS1=\h:\w\\$ ' -- sh -c 'apk --update add busybox-extras openssh-client curl bash bind-tools nano; bash'"
+alias kubsh="kubectl run ubuntu-$RANDOM -it --rm --image=ubuntu:latest --env 'PS1=\h:\w\\$ ' -- sh -c 'apt update; apt install --yes busybox curl screen nano telnet dnsutils wget gnupg2; echo defshell -bash > ~/.screenrc; screen'"
+
 
 alias he="helm"
 alias ko="kops"
@@ -50,6 +52,88 @@ function krun() {
 function ru() {
   for i in *; do cd $i; echo "===> Updating Git repository at ${i}"; git fetch --all; gu; cd ../; done
 }
+
+function devrm() {
+  export NS=default
+  export OWNER=haad
+  export CLUSTER=$(basename ${KUBECONFIG})
+
+  if [ "x$(kubectl -n ${NS} get deploy -l owner=${OWNER} -l service=devel -o name)" != "x" ]; then
+    export APP=$(basename $(kubectl -n ${NS} get deploy -l owner=${OWNER} -l service=devel -o name))
+
+    echo "Cleaning deployment ${APP} on kubernetes ${CLUSTER}..."
+    kubectl delete deploy/${APP}
+  fi
+}
+
+function devsh() {
+  export NS=default
+  export OWNER=haad
+  export CLUSTER=$(basename ${KUBECONFIG})
+
+  if [ "x$(kubectl -n ${NS} get deploy -l owner=${OWNER} -l service=devel -o name)" = "x" ]; then
+    export APP="haad-devel-env-$RANDOM"
+
+    echo "Creating deployment ${APP} on kubernetes: ${CLUSTER} "
+
+    cat << EOF | kubectl apply -n ${NS} -f -
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      labels:
+        environment: dev
+        project: devops
+        service: devel
+        owner: ${OWNER}
+        app: ${APP}
+      name: ${APP}
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          environment: dev
+          project: devops
+          owner: ${OWNER}
+          app: ${APP}
+      strategy:
+        type: Recreate
+      template:
+        metadata:
+          labels:
+            environment: dev
+            project: devops
+            owner: ${OWNER}
+            app: ${APP}
+          annotations:
+            cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
+        spec:
+          containers:
+            - image: ubuntu:latest
+              name: ubuntu
+              command: ["/bin/sh"]
+              args: ["-c", "apt update; apt install -y busybox curl screen nano telnet dnsutils wget gnupg2 vim git silversearcher-ag ripgrep; echo 'defshell -bash' > ~/.screenrc; screen"]
+              env:
+                - name: TZ
+                  value: "Europe/Bratislava"
+                - name: TERM
+                  value: "xterm-256color"
+                - name: SHELL
+                  value: "bash"
+                - name: PAGER
+                  value: "less"
+                - name: EDITOR
+                  value: "vim"
+              resources: {}
+          restartPolicy: Always
+EOF
+  else
+    export APP=$(basename $(kubectl -n ${NS} get deploy -l owner=${OWNER} -l service=devel -o name))
+  fi
+
+  echo "Connecting to shell runnning at ${APP} on kubernetes ${CLUSTER}...."
+  kubectl exec -it $(kubectl -n ${NS} get pods -l app=${APP} -o name) -- screen -RRd
+}
+
 
 
 # hab_multihop_tunnel() {

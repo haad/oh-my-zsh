@@ -23,6 +23,99 @@ function asp() {
   export AWS_EB_PROFILE=$1
 }
 
+# AWS profile switch
+function acp() {
+  if [[ -z "$1" ]]; then
+    unset AWS_DEFAULT_PROFILE AWS_PROFILE AWS_EB_PROFILE
+    unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
+    echo AWS profile cleared.
+    return
+  fi
+
+  local -a available_profiles
+  available_profiles=($(aws_profiles))
+  if [[ -z "${available_profiles[(r)$1]}" ]]; then
+    echo "${fg[red]}Profile '$1' not found in '${AWS_CONFIG_FILE:-$HOME/.aws/config}'" >&2
+    echo "Available profiles: ${(j:, :)available_profiles:-no profiles found}${reset_color}" >&2
+    return 1
+  fi
+
+  local profile="$1"
+
+  # Get fallback credentials for if the aws command fails or no command is run
+  local aws_access_key_id="$(aws configure get aws_access_key_id --profile $profile)"
+  local aws_secret_access_key="$(aws configure get aws_secret_access_key --profile $profile)"
+  local aws_session_token="$(aws configure get aws_session_token --profile $profile)"
+
+
+  # First, if the profile has MFA configured, lets get the token and session duration
+  local mfa_serial="$(aws configure get mfa_serial --profile $profile)"
+
+  if [[ -n "$mfa_serial" ]]; then
+    local -a mfa_opt
+    local mfa_token sess_duration
+    echo -n "Please enter your MFA token for $mfa_serial: "
+    read -r mfa_token
+    echo -n "Please enter the session duration in seconds (900-43200; default: 3600, which is the default maximum for a role): "
+    read -r sess_duration
+    mfa_opt=(--serial-number "$mfa_serial" --token-code "$mfa_token" --duration-seconds "${sess_duration:-3600}")
+
+    # Now see whether we need to just MFA for the current role, or assume a different one
+    local role_arn="$(aws configure get role_arn --profile $profile)"
+
+    if [[ -n "$role_arn" ]]; then
+      # Means we need to assume a specified role
+      aws_command=(aws sts assume-role --role-arn "$role_arn" "${mfa_opt[@]}")
+
+      # Check whether external_id is configured to use while assuming the role
+      local external_id="$(aws configure get external_id --profile "$profile")"
+      if [[ -n "$external_id" ]]; then
+        aws_command+=(--external-id "$external_id")
+      fi
+
+      # Get source profile to use to assume role
+      local source_profile="$(aws configure get source_profile --profile "$profile")"
+      aws_command+=(--profile="${source_profile:-profile}" --role-session-name "${source_profile:-profile}")
+
+      echo "Assuming role $role_arn using profile ${source_profile:-profile}"
+    else
+      # Means we only need to do MFA
+      aws_command=(aws sts get-session-token --profile="$profile" "${mfa_opt[@]}")
+      echo "Obtaining session token for profile $profile"
+    fi
+
+    # Format output of aws command for easier processing
+    aws_command+=(--query '[Credentials.AccessKeyId,Credentials.SecretAccessKey,Credentials.SessionToken]' --output text)
+
+    # Run the aws command to obtain credentials
+    local -a credentials
+    credentials=(${(ps:\t:)"$(${aws_command[@]})"})
+
+    if [[ -n "$credentials" ]]; then
+      aws_access_key_id="${credentials[1]}"
+      aws_secret_access_key="${credentials[2]}"
+      aws_session_token="${credentials[3]}"
+    fi
+  fi
+
+  # Switch to AWS profile
+  if [[ -n "${aws_access_key_id}" && -n "$aws_secret_access_key" ]]; then
+    export AWS_DEFAULT_PROFILE="$profile"
+    export AWS_PROFILE="$profile"
+    export AWS_EB_PROFILE="$profile"
+    export AWS_ACCESS_KEY_ID="$aws_access_key_id"
+    export AWS_SECRET_ACCESS_KEY="$aws_secret_access_key"
+
+    if [[ -n "$aws_session_token" ]]; then
+      export AWS_SESSION_TOKEN="$aws_session_token"
+    else
+      unset AWS_SESSION_TOKEN
+    fi
+
+    echo "Switched to AWS Profile: $profile"
+  fi
+}
+
 function aws_change_access_key() {
   if [[ -z "$1" ]]; then
     echo "usage: $0 <profile>"
@@ -41,35 +134,33 @@ function aws_change_access_key() {
 
 #
 # Open Google chrome authenticated
-alias google-chrome-stable='/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome'
-alias firefox-stable='/Applications/Firefox.app/Contents/MacOS/firefox'
-function avd() {
+# alias google-chrome-stable='/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome'
+# alias firefox-stable='/Applications/Firefox.app/Contents/MacOS/firefox'
+# function avd() {
 
-  if [[ -z "$1" ]]; then
-    unset AWS_VAULT AWS_DEFAULT_REGION AWS_REGION AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_SECURITY_TOKEN AWS_SESSION_EXPIRATION
-    echo AWS profile cleared.
-    return
-  fi
+#   if [[ -z "$1" ]]; then
+#     unset AWS_VAULT AWS_DEFAULT_REGION AWS_REGION AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_SECURITY_TOKEN AWS_SESSION_EXPIRATION
+#     echo AWS profile cleared.
+#     return
+#   fi
 
-  local TOKEN="$(aws-vault login -s $1)"
-  if [[ $TOKEN =~ "signin.aws.amazon.com" ]]; then
-    local cache=$(mktemp -d /tmp/google-cache-XXXXXX)
-    local data=$(mktemp -d /tmp/google-data-XXXXXX)
-    local log=$(mktemp /tmp/google-log-XXXXXX)
-    echo "Using cache: $cache data: $data log: $log"
+#   local TOKEN="$(aws-vault login -s $1)"
+#   if [[ $TOKEN =~ "signin.aws.amazon.com" ]]; then
+#     local cache=$(mktemp -d /tmp/google-cache-XXXXXX)
+#     local data=$(mktemp -d /tmp/google-data-XXXXXX)
+#     local log=$(mktemp /tmp/google-log-XXXXXX)
+#     echo "Using cache: $cache data: $data log: $log"
 
-    (google-chrome-stable --no-first-run --new-window --disk-cache-dir=$cache --user-data-dir=$data $TOKEN  && rm -rf $cache $data) 1>&2 2>${log} &
-#    firefox-stable --profile=${cache} --safe-mode --private-window ${TOKEN}
-  else
-    echo $TOKEN
-  fi
-}
+#     (google-chrome-stable --no-first-run --new-window --disk-cache-dir=$cache --user-data-dir=$data $TOKEN  && rm -rf $cache $data) 1>&2 2>${log} &
+# #    firefox-stable --profile=${cache} --safe-mode --private-window ${TOKEN}
+#   else
+#     echo $TOKEN
+#   fi
+# }
 
 #
 # Setup temp access keys with AWS vault
 function ave() {
-  local duration=1h
-
   if [[ -z "$1" ]]; then
     unset AWS_VAULT
     unset AWS_DEFAULT_REGION
@@ -84,7 +175,7 @@ function ave() {
     unset AWS_VAULT
   fi
 
-  aws-vault exec -d ${duration} $1 --
+  aws-vault exec ${1} --
 }
 
 function aws_profiles() {

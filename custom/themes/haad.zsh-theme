@@ -32,9 +32,10 @@ local current_dir="%B%F{blue}%5~%f%b"
 local git_branch='$(git_prompt_info)'
 local aws_info='$(aws_prompt_info)'
 local kcfg_info='$(kcfg_prompt_info)'
+local cfvault_info='$(cfvault_prompt_info)'
 
 
-PROMPT="╭─${user_host} ${current_dir} ${aws_info} ${kcfg_info} ${git_branch}
+PROMPT="╭─${user_host} ${current_dir} ${aws_info} ${kcfg_info} ${cfvault_info} ${git_branch}
 ╰─$PR_PROMPT "
 RPROMPT="${return_code}"
 
@@ -48,6 +49,9 @@ ZSH_THEME_AWS_SUFFIX="›%f"
 
 ZSH_THEME_KCFG_PREFIX="%{$fg[blue]%}‹"
 ZSH_THEME_KCFG_SUFFIX="›%f"
+
+ZSH_THEME_CFVAULT_PREFIX="%{$fg[green]%}‹"
+ZSH_THEME_CFVAULT_SUFFIX="›%f"
 
 
 }

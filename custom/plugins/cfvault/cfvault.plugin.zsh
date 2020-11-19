@@ -16,13 +16,17 @@ function cfvault {
 
   export VAULTCONFIG=$VAULT_HOME/${1}
   source ${VAULT_HOME}/${1}
-#  export VAULTCONFIG=$VAULT_HOME/${1}.cfg
-#  export RPROMPT="<k8s:$1>$rprompt"
-#
-#  export RPROMPT="$RPROMPT <k8s:$1>"
+}
+
+function cfvault_prompt_info() {
+
+  [[ -z $VAULTCONFIG ]] && return
+  echo "${ZSH_THEME_CFVAULT_PREFIX:=<}$(lcfvault)${ZSH_THEME_CFVAULT_SUFFIX:=>}"
 }
 
 function vault_configs {
+  export VAULT_HOME=${VAULT_HOME:="${HOME}/.config/vault"}
+
   reply=($(ls -1 ${VAULT_HOME}/* | xargs basename -a))
 }
 
